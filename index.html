@@ -53,7 +53,7 @@
         <div style="background: linear-gradient(135deg, #ec4899, #8b5cf6); width: 45px; height: 45px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px;">🛍️</div>
         <div>
             <h1>Smytten Auto</h1>
-            <p>Smytten Pro Panel — Live Connected</p>
+            <p>Smytten Pro Panel — Ultimate</p>
         </div>
     </div>
 
@@ -82,7 +82,7 @@
     <div id="firebaseSection">
         <div class="input-group">
             <label>Firebase Panels (line by line)</label>
-            <textarea id="fbPanels" rows="2" placeholder="sizzler-papa-default-rtdb"></textarea>
+            <textarea id="fbPanels" rows="2" placeholder="ujjpmkisan-default-rtdb"></textarea>
         </div>
         <div class="row" style="margin-bottom: 8px;">
             <button class="btn" style="background: #059669; margin:0; flex:2;" onclick="addPanels()">+ Add Panel(s)</button>
@@ -130,12 +130,12 @@
     </div>
 
     <div class="note">
-        🔒 Default Code: `Ng90M41` | Live Proxy Engine active.
+        🔒 Default Code: `Ng90M41` | Ultimate Parser active.
     </div>
 
     <div style="margin-top: 15px; font-size: 12px; font-weight: 600; color: #9ca3af; margin-bottom: 5px;">⚡ Live Process Log</div>
     <div class="log-box" id="logBox">
-        [System] Pro Panel connected with code Ng90M41<br>
+        [System] Ultimate Panel ready with code Ng90M41<br>
     </div>
 </div>
 
@@ -245,8 +245,8 @@
         }
 
         const proxies = [
-            `https://corsproxy.io/?` + encodeURIComponent(cleanUrl),
-            `https://api.allorigins.win/raw?url=` + encodeURIComponent(cleanUrl)
+            `https://api.allorigins.win/raw?url=` + encodeURIComponent(cleanUrl),
+            `https://corsproxy.io/?` + encodeURIComponent(cleanUrl)
         ];
 
         for(let proxy of proxies) {
@@ -263,7 +263,7 @@
 
     async function scanAllPanels() {
         if(addedPanels.length === 0) { alert('Add at least one panel first.'); return; }
-        log('[*] Scanning Firebase panels...');
+        log('[*] Scanning panels with Ultimate Parser...');
         document.getElementById('botStatus').innerText = 'Scanning...';
         document.getElementById('botStatus').style.color = '#3b82f6';
         
@@ -278,6 +278,10 @@
                         for(let k in node) extract(node[k]);
                     } else {
                         let val = String(node).trim();
+                        // Clean phone number extraction
+                        if(val.startsWith('+91')) val = val.substring(3);
+                        if(val.startsWith('91') && val.length === 12) val = val.substring(2);
+                        
                         if(/^[6-9]\d{9}$/.test(val) && !foundNumbers.includes(val)) {
                             foundNumbers.push(val);
                             if(!devicePool.some(d => d.phone === val)) {
@@ -289,7 +293,7 @@
                 extract(data);
                 log(`[✓] Panel read: found ${foundNumbers.length} number(s).`);
             } else {
-                log(`[-] Failed to fetch panel.`);
+                log(`[-] Failed to fetch panel (Check rules/URL).`);
             }
         }
         renderPool();
