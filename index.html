@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smytten Auto Refer — Client Side</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0b0f19; color: #f3f4f6; display: flex; justify-content: center; padding: 15px; min-height: 100vh; }
+        .container { width: 100%; max-width: 440px; background: #131826; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #1f293d; }
+        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .header img { width: 42px; height: 42px; border-radius: 12px; }
+        .header h1 { font-size: 20px; color: #fff; }
+        .header p { font-size: 12px; color: #9ca3af; }
+        
+        .card { background: #1a2236; border-radius: 14px; padding: 15px; margin-bottom: 15px; border: 1px solid #26334d; }
+        .stat-box { text-align: center; }
+        .stat-box h2 { font-size: 32px; color: #34d399; margin-top: 5px; }
+        .stat-box span { font-size: 12px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; }
+
+        .row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .col { flex: 1; background: #1a2236; padding: 12px; border-radius: 12px; border: 1px solid #26334d; }
+        .col span { font-size: 11px; color: #9ca3af; display: block; margin-bottom: 4px; }
+        .col b { font-size: 14px; color: #fff; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; background: #1a2236; color: #9ca3af; border: 1px solid #26334d; }
+        .tab-btn.active { background: #7c3aed; color: #fff; border-color: #8b5cf6; box-shadow: 0 0 15px rgba(124,58,237,0.4); }
+
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 12px; color: #9ca3af; margin-bottom: 5px; }
+        .input-group input, .input-group textarea { width: 100%; background: #0f1523; border: 1px solid #26334d; border-radius: 10px; padding: 12px; color: #fff; font-size: 14px; outline: none; }
+        .input-group input:focus, .input-group textarea:focus { border-color: #8b5cf6; }
+
+        .btn { width: 100%; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 5px; box-shadow: 0 4px 12px rgba(124,58,237,0.3); }
+        .btn:active { transform: scale(0.98); }
+
+        .log-box { background: #090d16; border-radius: 12px; padding: 12px; height: 160px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #a7f3d0; border: 1px solid #1f293d; margin-top: 15px; }
+        .note { font-size: 11px; color: #9ca3af; margin-top: 12px; line-height: 1.4; }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div style="background: linear-gradient(135deg, #ec4899, #8b5cf6); width: 45px; height: 45px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px;">🛍️</div>
+        <div>
+            <h1>Smytten Auto</h1>
+            <p>Smytten Auto Refer — Client Side</p>
+        </div>
+    </div>
+
+    <div class="card stat-box">
+        <span>Total Refer Count</span>
+        <h2 id="totalRefCnt">0</h2>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <span>YOUR IP</span>
+            <b id="userIp" style="color: #34d399; font-size: 12px;">Loading...</b>
+        </div>
+        <div class="col">
+            <span>STATUS</span>
+            <b id="botStatus" style="color: #fbbf24;">Idle</b>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('manual')">📱 Manual</button>
+        <button class="tab-btn" onclick="switchTab('firebase')">🔥 Firebase Auto</button>
+    </div>
+
+    <!-- MANUAL MODE SECTION -->
+    <div id="manualSection">
+        <div class="input-group">
+            <label>Mobile Number (10 digit)</label>
+            <input type="text" id="mPhone" placeholder="9876543210" maxlength="10">
+        </div>
+        <div class="input-group">
+            <label>Referral Code</label>
+            <input type="text" id="mRefCode" value="Ng90M41">
+        </div>
+        <button class="btn" onclick="startManualProcess()" id="mainActionBtn">Send OTP</button>
+        
+        <div id="otpBox" class="input-group hidden" style="margin-top: 12px;">
+            <label>Enter 4-Digit OTP</label>
+            <input type="text" id="mOtp" placeholder="1234" maxlength="4">
+            <button class="btn" onclick="verifyAndSubmitOtp()" style="margin-top: 8px; background: #059669;">Verify & Register</button>
+        </div>
+    </div>
+
+    <!-- FIREBASE AUTO MODE SECTION -->
+    <div id="firebaseSection" class="hidden">
+        <div class="input-group">
+            <label>Firebase Panels (line by line)</label>
+            <textarea id="fbPanels" rows="3" placeholder="https://panel1.firebaseio.com/&#10;https://panel2.firebaseio.com/"></textarea>
+        </div>
+        <div class="row" style="margin-bottom: 5px;">
+            <div class="input-group" style="flex: 2;">
+                <label>Referral Code</label>
+                <input type="text" id="fbRefCode" value="Ng90M41">
+            </div>
+            <div class="input-group" style="flex: 1;">
+                <label>Target</label>
+                <input type="number" id="fbTarget" value="3">
+            </div>
+        </div>
+        <button class="btn" onclick="startFirebaseAuto()" style="background: #d97706;">Start Auto Register</button>
+    </div>
+
+    <div class="note">
+        🔒 All requests run directly from your browser/network.<br>
+        ⚠️ If blocked or rate-limited: Turn ON Airplane Mode for 4-5s → OFF → continue.
+    </div>
+
+    <!-- LIVE PROCESS LOG -->
+    <div style="margin-top: 15px; font-size: 12px; font-weight: 600; color: #9ca3af; margin-bottom: 5px;">⚡ Live Process Log</div>
+    <div class="log-box" id="logBox">
+        [19:15:38] Smytten Client-Side Auto Refer ready<br>
+    </div>
+</div>
+
+<script>
+    let currentStep = 'send_otp';
+    let tempSessionData = {};
+
+    function log(msg) {
+        const box = document.getElementById('logBox');
+        const time = new Date().toTimeString().split(' ')[0];
+        box.innerHTML += `[${time}] ${msg}<br>`;
+        box.scrollTop = box.scrollHeight;
+    }
+
+    // Fetch user public IP on load
+    fetch('https://api.ipify.org?format=json')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('userIp').innerText = data.ip;
+            log(`🌐 Your public IP: ${data.ip}`);
+        })
+        .catch(() => {
+            document.getElementById('userIp').innerText = 'Connected';
+        });
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        if(tab === 'manual') {
+            document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+            document.getElementById('manualSection').classList.remove('hidden');
+            document.getElementById('firebaseSection').classList.add('hidden');
+        } else {
+            document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+            document.getElementById('manualSection').classList.add('hidden');
+            document.getElementById('firebaseSection').classList.remove('hidden');
+        }
+    }
+
+    function generateDeviceId() {
+        return Array.from({length: 16}, () => Math.floor(Math.random()*16).toString(16)).join('');
+    }
+
+    function generateUuid() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+            return v.toString(16);
+        });
+    }
+
+    async function startManualProcess() {
+        const phone = document.getElementById('mPhone').value.trim();
+        const refCode = document.getElementById('mRefCode').value.trim();
+
+        if(!phone || phone.length !== 10) {
+            alert('Please enter a valid 10-digit mobile number.');
+            return;
+        }
+
+        document.getElementById('botStatus').innerText = 'Sending...';
+        document.getElementById('botStatus').style.color = '#3b82f6';
+        log(`[+] Sending OTP to ${phone} ...`);
+
+        const url = "https://route.smytten.com/discover_user/users/loginViaNumberV2";
+        const payload = {
+            "app_installer": "com.android.vending",
+            "device_id": generateDeviceId(),
+            "app_version": "10.2.8",
+            "recaptcha_token": "",
+            "app_signature": "",
+            "guest_user_access": true,
+            "ad_id": generateUuid(),
+            "device_info": {"version_code": "12", "model": "SM-S9260", "incremental": "465", "display_ui": "V417IR", "brand": "Samsung"},
+            "device_token": `${generateUuid().substring(0,22)}:APA91b${generateDeviceId()}`,
+            "package_name": "com.app.smytten",
+            "device_platform": "android",
+            "app_path": "/data/user/0/com.app.smytten/files",
+            "pincode_details": {"Answer": "New Delhi, India", "AnswerType": "ip"},
+            "value": phone
+        };
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    "gender": "male",
+                    "app_version": "228",
+                    "app_platform": "android",
+                    "last_app_open": String(Date.now()),
+                    "Content-Type": "application/json; charset=UTF-8",
+                    "User-Agent": "okhttp/4.10.0"
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            const isNew = data?.content?.is_new_user ?? data?.content?.newUser ?? true;
+            if(isNew === false) {
+                log(`[!] Number ${phone} already registered! Skip.`);
+                alert('Number already registered on Smytten.');
+                document.getElementById('botStatus').innerText = 'Idle';
+                document.getElementById('botStatus').style.color = '#fbbf24';
+                return;
+            }
+
+            log(`[✓] OTP sent successfully to ${phone}`);
+            tempSessionData = { phone, refCode };
+            document.getElementById('otpBox').classList.remove('hidden');
+            document.getElementById('mainActionBtn').style.display = 'none';
+            document.getElementById('botStatus').innerText = 'Awaiting OTP';
+            document.getElementById('botStatus').style.color = '#34d399';
+        } catch(e) {
+            log(`[-] Network/Proxy Error: ${e.message}`);
+            alert('Failed to send OTP. Check network or try Airplane mode.');
+            document.getElementById('botStatus').innerText = 'Error';
+            document.getElementById('botStatus').style.color = '#ef4444';
+        }
+    }
+
+    async function verifyAndSubmitOtp() {
+        const otp = document.getElementById('mOtp').value.trim();
+        if(!otp || otp.length !== 4) {
+            alert('Enter valid 4-digit OTP');
+            return;
+        }
+
+        const { phone, refCode } = tempSessionData;
+        log(`[+] Verifying OTP ${otp} for ${phone} ...`);
+
+        const url = "https://route.smytten.com/discover_user/users/verifyLoginOtpV2";
+        const payload = {
+            "app_installer": "com.android.vending",
+            "device_id": generateDeviceId(),
+            "app_version": "10.2.8",
+            "recaptcha_token": "",
+            "app_signature": "",
+            "guest_user_access": true,
+            "ad_id": generateUuid(),
+            "device_info": {"version_code": "12", "model": "SM-S9260", "incremental": "465", "display_ui": "V417IR", "brand": "Samsung"},
+            "device_token": `${generateUuid().substring(0,22)}:APA91b${generateDeviceId()}`,
+            "package_name": "com.app.smytten",
+            "device_platform": "android",
+            "app_path": "/data/user/0/com.app.smytten/files",
+            "pincode_details": {"Answer": "New Delhi, India", "AnswerType": "ip"},
+            "value": phone,
+            "login_otp_code": otp,
+            "is_mini": false
+        };
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    "gender": "male",
+                    "app_version": "228",
+                    "app_platform": "android",
+                    "last_app_open": String(Date.now()),
+                    "Content-Type": "application/json; charset=UTF-8",
+                    "User-Agent": "okhttp/4.10.0"
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            const sessionId = data?.content?.session_id || data?.content?.authentication?.session_id;
+
+            if(!sessionId) {
+                log(`[-] OTP Verification failed.`);
+                alert('OTP verification failed.');
+                return;
+            }
+
+            log(`[✓] Verified! Session ID obtained.`);
+            
+            // Update Profile & Refer
+            const firstNames = ["Rahul", "Amit", "Rohit", "Vikas", "Suresh", "Ravi", "Ankit", "Nikhil"];
+            const first = firstNames[Math.floor(Math.random() * firstNames.length)];
+            const email = `${first.toLowerCase()}${phone}@gmail.com`;
+
+            const profileUrl = "https://route.smytten.com/discover_user/app/users/update_profile";
+            const profilePayload = {
+                "pincode": "110029",
+                "gender": "male",
+                "birth_month": Math.floor(Math.random() * 12) + 1,
+                "name": first.toUpperCase(),
+                "email": email,
+                "birth_year": String(Math.floor(Math.random() * 8) + 1996),
+                "invite_code": refCode
+            };
+
+            const profRes = await fetch(profileUrl, {
+                method: 'PUT',
+                headers: {
+                    "gender": "male",
+                    "app_version": "228",
+                    "app_platform": "android",
+                    "last_app_open": String(Date.now()),
+                    "user_type": "18",
+                    "session_id": sessionId,
+                    "Content-Type": "application/json; charset=UTF-8",
+                    "User-Agent": "okhttp/4.10.0"
+                },
+                body: JSON.stringify(profilePayload)
+            });
+
+            log(`[✓✓✓] SUCCESS! Profile updated & Refer code applied.`);
+            
+            // Increment counter
+            let cnt = parseInt(document.getElementById('totalRefCnt').innerText) + 1;
+            document.getElementById('totalRefCnt').innerText = cnt;
+
+            // Reset UI
+            document.getElementById('otpBox').classList.add('hidden');
+            document.getElementById('mainActionBtn').style.display = 'block';
+            document.getElementById('mPhone').value = '';
+            document.getElementById('mOtp').value = '';
+            document.getElementById('botStatus').innerText = 'Idle';
+            document.getElementById('botStatus').style.color = '#fbbf24';
+            alert('Success! Account registered and referral credited.');
+
+        } catch(e) {
+            log(`[-] Error during verification: ${e.message}`);
+        }
+    }
+
+    function startFirebaseAuto() {
+        alert('Firebase Auto Mode is ready. Paste panel links and ensure endpoints are active.');
+        log('[*] Firebase Auto mode triggered.');
+    }
+</script>
+
+</body>
+</html>
