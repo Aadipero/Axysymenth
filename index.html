@@ -64,8 +64,8 @@
 
     <div class="row">
         <div class="col">
-            <span>YOUR IP</span>
-            <b id="userIp" style="color: #34d399; font-size: 11px;">Loading...</b>
+            <span>IP STATUS</span>
+            <b id="userIp" style="color: #34d399; font-size: 11px;">Connected</b>
         </div>
         <div class="col">
             <span>STATUS</span>
@@ -151,11 +151,6 @@
         box.innerHTML += `[${time}] ${msg}<br>`;
         box.scrollTop = box.scrollHeight;
     }
-
-    fetch('https://api.ipify.org?format=json')
-        .then(res => res.json())
-        .then(data => { document.getElementById('userIp').innerText = data.ip; })
-        .catch(() => { document.getElementById('userIp').innerText = 'Connected'; });
 
     function switchTab(tab) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -311,7 +306,9 @@
             "app_platform": "android",
             "last_app_open": String(Date.now()),
             "Content-Type": "application/json; charset=UTF-8",
-            "User-Agent": "okhttp/4.10.0"
+            "User-Agent": "okhttp/4.10.0",
+            "Accept-Encoding": "gzip",
+            "Connection": "Keep-Alive"
         };
         if(sessionId) headers["session_id"] = sessionId;
         if(endpoint.includes('update_profile')) headers["user_type"] = "18";
@@ -361,20 +358,26 @@
             "package_name": "com.app.smytten",
             "device_platform": "android",
             "app_path": "/data/user/0/com.app.smytten/files",
-            "pincode_details": {"Answer": "New Delhi, India", "AnswerType": "ip"},
+            "pincode_details": {"Answer": "New Delhi, India (110029)", "AnswerType": "ip"},
             "value": phone
         };
         let res = await callSmyttenApi("/discover_user/users/loginViaNumberV2", payload, 'POST');
         document.getElementById('botStatus').innerText = 'Idle';
         document.getElementById('botStatus').style.color = '#fbbf24';
 
-        if(res && (res.content || res.response)) {
+        if(res && res.content) {
+            let isNew = res.content.is_new_user ?? res.content.newUser ?? true;
+            if(isNew === false) {
+                alert('Number already registered on Smytten!');
+                log(`[!] ${phone} already registered.`);
+                return;
+            }
             log(`[✓] OTP successfully sent to ${phone}`);
             tempSessionData = { phone, refCode };
             document.getElementById('otpBox').classList.remove('hidden');
             document.getElementById('mainActionBtn').style.display = 'none';
         } else {
-            alert('OTP request failed or number already registered.');
+            alert('OTP request failed or blocked by server.');
             log(`[-] OTP request failed for ${phone}`);
         }
     }
@@ -400,7 +403,7 @@
             "package_name": "com.app.smytten",
             "device_platform": "android",
             "app_path": "/data/user/0/com.app.smytten/files",
-            "pincode_details": {"Answer": "New Delhi, India", "AnswerType": "ip"},
+            "pincode_details": {"Answer": "New Delhi, India (110029)", "AnswerType": "ip"},
             "value": phone,
             "login_otp_code": otp,
             "is_mini": false
@@ -465,13 +468,13 @@
                 "package_name": "com.app.smytten",
                 "device_platform": "android",
                 "app_path": "/data/user/0/com.app.smytten/files",
-                "pincode_details": {"Answer": "New Delhi, India", "AnswerType": "ip"},
+                "pincode_details": {"Answer": "New Delhi, India (110029)", "AnswerType": "ip"},
                 "value": dev.phone
             };
 
             let loginRes = await callSmyttenApi("/discover_user/users/loginViaNumberV2", loginPayload, 'POST');
-            if(loginRes) {
-                let content = loginRes.content || {};
+            if(loginRes && loginRes.content) {
+                let content = loginRes.content;
                 let isNew = content.is_new_user ?? content.newUser ?? true;
 
                 if(isNew === false) {
@@ -488,7 +491,7 @@
                 log(`[✓✓] OTP triggered & Ref code ${refCode} checked for ${dev.phone}`);
             } else {
                 dev.status = 'FAILED';
-                log(`[-] API error for ${dev.phone}`);
+                log(`[-] API blocked or error for ${dev.phone}`);
             }
             renderPool();
             await new Promise(r => setTimeout(r, 1500));
