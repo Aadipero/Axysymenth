@@ -53,7 +53,7 @@
         <div style="background: linear-gradient(135deg, #ec4899, #8b5cf6); width: 45px; height: 45px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px;">🛍️</div>
         <div>
             <h1>Smytten Auto</h1>
-            <p>Smytten Pro Panel — Ultimate</p>
+            <p>Pro Web Panel — Live</p>
         </div>
     </div>
 
@@ -81,8 +81,8 @@
     <!-- FIREBASE AUTO MODE SECTION -->
     <div id="firebaseSection">
         <div class="input-group">
-            <label>Firebase Panels (line by line)</label>
-            <textarea id="fbPanels" rows="2" placeholder="ujjpmkisan-default-rtdb"></textarea>
+            <label>Firebase Panel URL / Name</label>
+            <textarea id="fbPanels" rows="2" placeholder="raju-b3e2b-default-rtdb"></textarea>
         </div>
         <div class="row" style="margin-bottom: 8px;">
             <button class="btn" style="background: #059669; margin:0; flex:2;" onclick="addPanels()">+ Add Panel(s)</button>
@@ -93,11 +93,11 @@
         <div class="row" style="margin-top: 10px; margin-bottom: 5px;">
             <div class="input-group" style="flex: 2;">
                 <label>Referral Code</label>
-                <input type="text" id="fbRefCode" value="Ng90M41">
+                <input type="text" id="fbRefCode" value="0rqjgq7">
             </div>
             <div class="input-group" style="flex: 1;">
                 <label>Target Success</label>
-                <input type="number" id="fbTarget" value="3">
+                <input type="number" id="fbTarget" value="7">
             </div>
         </div>
         <button class="btn" style="background: #059669;" onclick="scanAllPanels()">🔍 Scan All Panels</button>
@@ -118,7 +118,7 @@
         </div>
         <div class="input-group">
             <label>Referral Code</label>
-            <input type="text" id="mRefCode" value="Ng90M41">
+            <input type="text" id="mRefCode" value="0rqjgq7">
         </div>
         <button class="btn" onclick="startManualProcess()" id="mainActionBtn">Send OTP</button>
         
@@ -130,12 +130,12 @@
     </div>
 
     <div class="note">
-        🔒 Default Code: `Ng90M41` | Ultimate Parser active.
+        🔒 Customizable Refer Code | Proxy Active.
     </div>
 
     <div style="margin-top: 15px; font-size: 12px; font-weight: 600; color: #9ca3af; margin-bottom: 5px;">⚡ Live Process Log</div>
     <div class="log-box" id="logBox">
-        [System] Ultimate Panel ready with code Ng90M41<br>
+        [System] Pro Panel loaded successfully.<br>
     </div>
 </div>
 
@@ -253,8 +253,10 @@
             try {
                 let res = await fetch(proxy);
                 if(res.ok) {
-                    let data = await res.json();
-                    if(data) return data;
+                    let text = await res.text();
+                    if(text && text.trim().startsWith('{')) {
+                        return JSON.parse(text);
+                    }
                 }
             } catch(e) {}
         }
@@ -263,7 +265,7 @@
 
     async function scanAllPanels() {
         if(addedPanels.length === 0) { alert('Add at least one panel first.'); return; }
-        log('[*] Scanning panels with Ultimate Parser...');
+        log('[*] Scanning Firebase panels...');
         document.getElementById('botStatus').innerText = 'Scanning...';
         document.getElementById('botStatus').style.color = '#3b82f6';
         
@@ -278,7 +280,6 @@
                         for(let k in node) extract(node[k]);
                     } else {
                         let val = String(node).trim();
-                        // Clean phone number extraction
                         if(val.startsWith('+91')) val = val.substring(3);
                         if(val.startsWith('91') && val.length === 12) val = val.substring(2);
                         
@@ -293,7 +294,7 @@
                 extract(data);
                 log(`[✓] Panel read: found ${foundNumbers.length} number(s).`);
             } else {
-                log(`[-] Failed to fetch panel (Check rules/URL).`);
+                log(`[-] Failed to fetch panel (Check Firebase Rules).`);
             }
         }
         renderPool();
@@ -315,25 +316,27 @@
         if(sessionId) headers["session_id"] = sessionId;
         if(endpoint.includes('update_profile')) headers["user_type"] = "18";
 
-        try {
-            const res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(targetUrl), {
-                method: method,
-                headers: headers,
-                body: JSON.stringify(payload)
-            });
-            return await res.json();
-        } catch(e) {
+        const proxies = [
+            `https://corsproxy.io/?` + encodeURIComponent(targetUrl),
+            `https://api.allorigins.win/raw?url=` + encodeURIComponent(targetUrl)
+        ];
+
+        for(let proxy of proxies) {
             try {
-                const resFallback = await fetch(`https://api.allorigins.win/raw?url=` + encodeURIComponent(targetUrl), {
+                let res = await fetch(proxy, {
                     method: method,
                     headers: headers,
                     body: JSON.stringify(payload)
                 });
-                return await resFallback.json();
-            } catch(err) {
-                return null;
-            }
+                if(res.ok) {
+                    let text = await res.text();
+                    if(text && text.trim()) {
+                        return JSON.parse(text);
+                    }
+                }
+            } catch(e) {}
         }
+        return null;
     }
 
     async function startManualProcess() {
@@ -435,7 +438,7 @@
     async function startAutoRegister() {
         if(devicePool.length === 0) { alert('Scan panels first.'); return; }
         const refCode = document.getElementById('fbRefCode').value.trim();
-        const target = parseInt(document.getElementById('fbTarget').value) || 3;
+        const target = parseInt(document.getElementById('fbTarget').value) || 7;
         
         isRunning = true;
         document.getElementById('botStatus').innerText = 'Running';
@@ -447,7 +450,7 @@
             if(!isRunning || successCount >= target) break;
             dev.status = 'BUSY';
             renderPool();
-            log(`[+] Checking number from pool: ${dev.phone}`);
+            log(`[+] Checking number: ${dev.phone}`);
 
             let loginPayload = {
                 "app_installer": "com.android.vending",
@@ -467,22 +470,28 @@
             };
 
             let loginRes = await callSmyttenApi("/discover_user/users/loginViaNumberV2", loginPayload, 'POST');
-            let isNew = loginRes?.content?.is_new_user ?? loginRes?.content?.newUser ?? true;
+            if(loginRes) {
+                let content = loginRes.content || {};
+                let isNew = content.is_new_user ?? content.newUser ?? true;
 
-            if(isNew === false) {
-                dev.status = 'REGISTERED';
-                log(`[!] ${dev.phone} already registered. Skipping.`);
-                renderPool();
-                continue;
+                if(isNew === false) {
+                    dev.status = 'REGISTERED';
+                    log(`[!] ${dev.phone} already registered. Skipping.`);
+                    renderPool();
+                    continue;
+                }
+
+                successCount++;
+                let cnt = parseInt(document.getElementById('totalRefCnt').innerText) + 1;
+                document.getElementById('totalRefCnt').innerText = cnt;
+                dev.status = 'TRIGGERED';
+                log(`[✓✓] OTP triggered & Ref code ${refCode} checked for ${dev.phone}`);
+            } else {
+                dev.status = 'FAILED';
+                log(`[-] API error for ${dev.phone}`);
             }
-
-            successCount++;
-            let cnt = parseInt(document.getElementById('totalRefCnt').innerText) + 1;
-            document.getElementById('totalRefCnt').innerText = cnt;
-            dev.status = 'SUCCESS';
-            log(`[✓✓] Ref code ${refCode} registered successfully for ${dev.phone}`);
             renderPool();
-            await new Promise(r => setTimeout(r, 2000));
+            await new Promise(r => setTimeout(r, 1500));
         }
         isRunning = false;
         document.getElementById('botStatus').innerText = 'Idle';
