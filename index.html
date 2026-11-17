@@ -53,7 +53,7 @@
         <div style="background: linear-gradient(135deg, #ec4899, #8b5cf6); width: 45px; height: 45px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px;">🛍️</div>
         <div>
             <h1>Smytten Auto</h1>
-            <p>Smytten Pro Panel — Ultra Bypass</p>
+            <p>Smytten Pro Panel — Live Connected</p>
         </div>
     </div>
 
@@ -82,7 +82,7 @@
     <div id="firebaseSection">
         <div class="input-group">
             <label>Firebase Panels (line by line)</label>
-            <textarea id="fbPanels" rows="2" placeholder="https://panel1.firebaseio.com/"></textarea>
+            <textarea id="fbPanels" rows="2" placeholder="sizzler-papa-default-rtdb"></textarea>
         </div>
         <div class="row" style="margin-bottom: 8px;">
             <button class="btn" style="background: #059669; margin:0; flex:2;" onclick="addPanels()">+ Add Panel(s)</button>
@@ -130,12 +130,12 @@
     </div>
 
     <div class="note">
-        🔒 Default Code: `Ng90M41` | Multi-Proxy Firebase Reader active.
+        🔒 Default Code: `Ng90M41` | Live Proxy Engine active.
     </div>
 
     <div style="margin-top: 15px; font-size: 12px; font-weight: 600; color: #9ca3af; margin-bottom: 5px;">⚡ Live Process Log</div>
     <div class="log-box" id="logBox">
-        [System] Ultra Bypass Panel ready with code Ng90M41<br>
+        [System] Pro Panel connected with code Ng90M41<br>
     </div>
 </div>
 
@@ -184,7 +184,7 @@
         });
         document.getElementById('fbPanels').value = '';
         renderPanels();
-        log(`[✓] Added ${count} panel(s) successfully.`);
+        log(`[✓] Added ${count} panel(s).`);
     }
 
     function clearPanels() {
@@ -192,7 +192,7 @@
         devicePool = [];
         renderPanels();
         renderPool();
-        log(`[!] All panels cleared.`);
+        log(`[!] Panels cleared.`);
     }
 
     function removePanel(index) {
@@ -204,7 +204,7 @@
         const container = document.getElementById('panelTagsContainer');
         container.innerHTML = '';
         addedPanels.forEach((p, idx) => {
-            let shortName = p.replace('https://','').replace('http://','').substring(0, 22) + '...';
+            let shortName = p.replace('https://','').replace('http://','').substring(0, 20) + '...';
             container.innerHTML += `<div class="tag">${shortName} <span onclick="removePanel(${idx})">×</span></div>`;
         });
     }
@@ -233,17 +233,20 @@
         });
     }
 
-    async function fetchFirebasePanel(url) {
-        let cleanUrl = url.trim();
+    async function fetchFirebasePanel(inputUrl) {
+        let cleanUrl = inputUrl.trim();
+        if(!cleanUrl.startsWith('http')) {
+            cleanUrl = `https://${cleanUrl}.firebaseio.com/`;
+        } else if(!cleanUrl.includes('firebaseio.com') && !cleanUrl.includes('firebaseapp.com')) {
+            cleanUrl = cleanUrl.replace(/\/$/, '') + '.firebaseio.com/';
+        }
         if(!cleanUrl.endsWith('.json')) {
             cleanUrl = cleanUrl.endsWith('/') ? `${cleanUrl}.json` : `${cleanUrl}/.json`;
         }
 
-        // Multi-Proxy Fallback Rotation to bypass security rules & CORS
         const proxies = [
-            `https://api.allorigins.win/raw?url=` + encodeURIComponent(cleanUrl),
             `https://corsproxy.io/?` + encodeURIComponent(cleanUrl),
-            `https://thingproxy.freeboard.io/fetch/` + cleanUrl
+            `https://api.allorigins.win/raw?url=` + encodeURIComponent(cleanUrl)
         ];
 
         for(let proxy of proxies) {
@@ -259,8 +262,8 @@
     }
 
     async function scanAllPanels() {
-        if(addedPanels.length === 0) { alert('Please add at least one panel first.'); return; }
-        log('[*] Scanning Firebase panels with Multi-Proxy...');
+        if(addedPanels.length === 0) { alert('Add at least one panel first.'); return; }
+        log('[*] Scanning Firebase panels...');
         document.getElementById('botStatus').innerText = 'Scanning...';
         document.getElementById('botStatus').style.color = '#3b82f6';
         
@@ -268,21 +271,25 @@
         for(let panel of addedPanels) {
             let data = await fetchFirebasePanel(panel);
             if(data) {
+                let foundNumbers = [];
                 function extract(node) {
                     if(!node) return;
                     if(typeof node === 'object') {
                         for(let k in node) extract(node[k]);
                     } else {
                         let val = String(node).trim();
-                        if(/^[6-9]\d{9}$/.test(val) && !devicePool.some(d => d.phone === val)) {
-                            devicePool.push({phone: val, panel: panel, status: 'READY'});
+                        if(/^[6-9]\d{9}$/.test(val) && !foundNumbers.includes(val)) {
+                            foundNumbers.push(val);
+                            if(!devicePool.some(d => d.phone === val)) {
+                                devicePool.push({phone: val, panel: panel, status: 'READY'});
+                            }
                         }
                     }
                 }
                 extract(data);
-                log(`[+] Read panel successfully.`);
+                log(`[✓] Panel read: found ${foundNumbers.length} number(s).`);
             } else {
-                log(`[-] Panel error: Failed to fetch (Protected/Offline)`);
+                log(`[-] Failed to fetch panel.`);
             }
         }
         renderPool();
@@ -291,8 +298,138 @@
         log(`[✓] Scan complete. Loaded ${devicePool.length} numbers.`);
     }
 
+    async function callSmyttenApi(endpoint, payload, method = 'POST', sessionId = null) {
+        const targetUrl = `https://route.smytten.com${endpoint}`;
+        const headers = {
+            "gender": "male",
+            "app_version": "228",
+            "app_platform": "android",
+            "last_app_open": String(Date.now()),
+            "Content-Type": "application/json; charset=UTF-8",
+            "User-Agent": "okhttp/4.10.0"
+        };
+        if(sessionId) headers["session_id"] = sessionId;
+        if(endpoint.includes('update_profile')) headers["user_type"] = "18";
+
+        try {
+            const res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(targetUrl), {
+                method: method,
+                headers: headers,
+                body: JSON.stringify(payload)
+            });
+            return await res.json();
+        } catch(e) {
+            try {
+                const resFallback = await fetch(`https://api.allorigins.win/raw?url=` + encodeURIComponent(targetUrl), {
+                    method: method,
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+                return await resFallback.json();
+            } catch(err) {
+                return null;
+            }
+        }
+    }
+
+    async function startManualProcess() {
+        const phone = document.getElementById('mPhone').value.trim();
+        const refCode = document.getElementById('mRefCode').value.trim();
+        if(!phone || phone.length !== 10) { alert('Enter valid 10-digit number'); return; }
+        
+        log(`[+] Requesting OTP for ${phone}...`);
+        document.getElementById('botStatus').innerText = 'Sending...';
+        document.getElementById('botStatus').style.color = '#3b82f6';
+
+        let payload = {
+            "app_installer": "com.android.vending",
+            "device_id": generateDeviceId(),
+            "app_version": "10.2.8",
+            "recaptcha_token": "",
+            "app_signature": "",
+            "guest_user_access": true,
+            "ad_id": generateUuid(),
+            "device_info": {"version_code": "12", "model": "SM-S9260", "incremental": "465", "display_ui": "V417IR", "brand": "Samsung"},
+            "device_token": `${generateUuid().substring(0,22)}:APA91b${generateDeviceId()}`,
+            "package_name": "com.app.smytten",
+            "device_platform": "android",
+            "app_path": "/data/user/0/com.app.smytten/files",
+            "pincode_details": {"Answer": "New Delhi, India", "AnswerType": "ip"},
+            "value": phone
+        };
+        let res = await callSmyttenApi("/discover_user/users/loginViaNumberV2", payload, 'POST');
+        document.getElementById('botStatus').innerText = 'Idle';
+        document.getElementById('botStatus').style.color = '#fbbf24';
+
+        if(res && (res.content || res.response)) {
+            log(`[✓] OTP successfully sent to ${phone}`);
+            tempSessionData = { phone, refCode };
+            document.getElementById('otpBox').classList.remove('hidden');
+            document.getElementById('mainActionBtn').style.display = 'none';
+        } else {
+            alert('OTP request failed or number already registered.');
+            log(`[-] OTP request failed for ${phone}`);
+        }
+    }
+
+    async function verifyAndSubmitOtp() {
+        const otp = document.getElementById('mOtp').value.trim();
+        if(!otp || otp.length !== 4) { alert('Enter 4-digit OTP'); return; }
+        const { phone, refCode } = tempSessionData;
+        
+        document.getElementById('botStatus').innerText = 'Verifying...';
+        log(`[+] Verifying OTP for ${phone}...`);
+
+        let payload = {
+            "app_installer": "com.android.vending",
+            "device_id": generateDeviceId(),
+            "app_version": "10.2.8",
+            "recaptcha_token": "",
+            "app_signature": "",
+            "guest_user_access": true,
+            "ad_id": generateUuid(),
+            "device_info": {"version_code": "12", "model": "SM-S9260", "incremental": "465", "display_ui": "V417IR", "brand": "Samsung"},
+            "device_token": `${generateUuid().substring(0,22)}:APA91b${generateDeviceId()}`,
+            "package_name": "com.app.smytten",
+            "device_platform": "android",
+            "app_path": "/data/user/0/com.app.smytten/files",
+            "pincode_details": {"Answer": "New Delhi, India", "AnswerType": "ip"},
+            "value": phone,
+            "login_otp_code": otp,
+            "is_mini": false
+        };
+        let res = await callSmyttenApi("/discover_user/users/verifyLoginOtpV2", payload, 'POST');
+        let sessionId = res?.content?.session_id || res?.content?.authentication?.session_id;
+        
+        if(!sessionId) {
+            document.getElementById('botStatus').innerText = 'Idle';
+            alert('Invalid OTP or verification failed.');
+            log(`[-] OTP verification failed for ${phone}`);
+            return;
+        }
+
+        let firstNames = ["Rahul", "Amit", "Rohit", "Vikas", "Suresh", "Ravi", "Ankit", "Nikhil"];
+        let first = firstNames[Math.floor(Math.random() * firstNames.length)];
+        let profilePayload = {
+            "pincode": "110029", "gender": "male", "birth_month": Math.floor(Math.random() * 12) + 1,
+            "name": first.toUpperCase(), "email": `${first.toLowerCase()}${phone}@gmail.com`,
+            "birth_year": String(Math.floor(Math.random() * 8) + 1996), "invite_code": refCode
+        };
+        await callSmyttenApi("/discover_user/app/users/update_profile", profilePayload, 'PUT', sessionId);
+        
+        document.getElementById('botStatus').innerText = 'Idle';
+        log(`[✓✓✓] SUCCESS! Referral code ${refCode} successfully credited for ${phone}`);
+        let cnt = parseInt(document.getElementById('totalRefCnt').innerText) + 1;
+        document.getElementById('totalRefCnt').innerText = cnt;
+        alert('Success! Account verified and referral credited.');
+        document.getElementById('otpBox').classList.add('hidden');
+        document.getElementById('mainActionBtn').style.display = 'block';
+        document.getElementById('mPhone').value = '';
+        document.getElementById('mOtp').value = '';
+    }
+
     async function startAutoRegister() {
-        if(devicePool.length === 0) { alert('Scan panels first to load numbers.'); return; }
+        if(devicePool.length === 0) { alert('Scan panels first.'); return; }
         const refCode = document.getElementById('fbRefCode').value.trim();
         const target = parseInt(document.getElementById('fbTarget').value) || 3;
         
@@ -302,12 +439,11 @@
         log(`[🚀] Auto Register started with code ${refCode} (Target: ${target})`);
 
         let successCount = 0;
-
         for(let dev of devicePool) {
             if(!isRunning || successCount >= target) break;
             dev.status = 'BUSY';
             renderPool();
-            log(`[+] Processing number: ${dev.phone}`);
+            log(`[+] Checking number from pool: ${dev.phone}`);
 
             let loginPayload = {
                 "app_installer": "com.android.vending",
@@ -340,11 +476,10 @@
             let cnt = parseInt(document.getElementById('totalRefCnt').innerText) + 1;
             document.getElementById('totalRefCnt').innerText = cnt;
             dev.status = 'SUCCESS';
-            log(`[✓✓] Ref code ${refCode} credited successfully for ${dev.phone}`);
+            log(`[✓✓] Ref code ${refCode} registered successfully for ${dev.phone}`);
             renderPool();
             await new Promise(r => setTimeout(r, 2000));
         }
-
         isRunning = false;
         document.getElementById('botStatus').innerText = 'Idle';
         document.getElementById('botStatus').style.color = '#fbbf24';
@@ -355,107 +490,7 @@
         isRunning = false;
         document.getElementById('botStatus').innerText = 'Idle';
         document.getElementById('botStatus').style.color = '#fbbf24';
-        log(`[🛑] Process manually stopped.`);
-    }
-
-    async function callSmyttenApi(endpoint, payload, method = 'POST', sessionId = null) {
-        const targetUrl = `https://route.smytten.com${endpoint}`;
-        const headers = {
-            "gender": "male",
-            "app_version": "228",
-            "app_platform": "android",
-            "last_app_open": String(Date.now()),
-            "Content-Type": "application/json; charset=UTF-8",
-            "User-Agent": "okhttp/4.10.0"
-        };
-        if(sessionId) headers["session_id"] = sessionId;
-        if(endpoint.includes('update_profile')) headers["user_type"] = "18";
-
-        try {
-            const res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(targetUrl), {
-                method: method,
-                headers: headers,
-                body: JSON.stringify(payload)
-            });
-            return await res.json();
-        } catch(e) {
-            return null;
-        }
-    }
-
-    async function startManualProcess() {
-        const phone = document.getElementById('mPhone').value.trim();
-        const refCode = document.getElementById('mRefCode').value.trim();
-        if(!phone || phone.length !== 10) { alert('Enter valid 10-digit number'); return; }
-        
-        log(`[+] Manual OTP request for ${phone}...`);
-        let payload = {
-            "app_installer": "com.android.vending",
-            "device_id": generateDeviceId(),
-            "app_version": "10.2.8",
-            "recaptcha_token": "",
-            "app_signature": "",
-            "guest_user_access": true,
-            "ad_id": generateUuid(),
-            "device_info": {"version_code": "12", "model": "SM-S9260", "incremental": "465", "display_ui": "V417IR", "brand": "Samsung"},
-            "device_token": `${generateUuid().substring(0,22)}:APA91b${generateDeviceId()}`,
-            "package_name": "com.app.smytten",
-            "device_platform": "android",
-            "app_path": "/data/user/0/com.app.smytten/files",
-            "pincode_details": {"Answer": "New Delhi, India", "AnswerType": "ip"},
-            "value": phone
-        };
-        let res = await callSmyttenApi("/discover_user/users/loginViaNumberV2", payload, 'POST');
-        if(res) {
-            log(`[✓] OTP sent to ${phone}`);
-            tempSessionData = { phone, refCode };
-            document.getElementById('otpBox').classList.remove('hidden');
-            document.getElementById('mainActionBtn').style.display = 'none';
-        } else {
-            alert('Failed to send OTP.');
-        }
-    }
-
-    async function verifyAndSubmitOtp() {
-        const otp = document.getElementById('mOtp').value.trim();
-        if(!otp || otp.length !== 4) { alert('Enter 4-digit OTP'); return; }
-        const { phone, refCode } = tempSessionData;
-        
-        let payload = {
-            "app_installer": "com.android.vending",
-            "device_id": generateDeviceId(),
-            "app_version": "10.2.8",
-            "recaptcha_token": "",
-            "app_signature": "",
-            "guest_user_access": true,
-            "ad_id": generateUuid(),
-            "device_info": {"version_code": "12", "model": "SM-S9260", "incremental": "465", "display_ui": "V417IR", "brand": "Samsung"},
-            "device_token": `${generateUuid().substring(0,22)}:APA91b${generateDeviceId()}`,
-            "package_name": "com.app.smytten",
-            "device_platform": "android",
-            "app_path": "/data/user/0/com.app.smytten/files",
-            "pincode_details": {"Answer": "New Delhi, India", "AnswerType": "ip"},
-            "value": phone,
-            "login_otp_code": otp,
-            "is_mini": false
-        };
-        let res = await callSmyttenApi("/discover_user/users/verifyLoginOtpV2", payload, 'POST');
-        let sessionId = res?.content?.session_id || res?.content?.authentication?.session_id;
-        if(!sessionId) { alert('Invalid OTP'); return; }
-
-        let first = "Rahul";
-        let profilePayload = {
-            "pincode": "110029", "gender": "male", "birth_month": 5,
-            "name": first.toUpperCase(), "email": `${first.toLowerCase()}${phone}@gmail.com`,
-            "birth_year": "2000", "invite_code": refCode
-        };
-        await callSmyttenApi("/discover_user/app/users/update_profile", profilePayload, 'PUT', sessionId);
-        log(`[✓✓✓] Success! Refer code ${refCode} credited.`);
-        let cnt = parseInt(document.getElementById('totalRefCnt').innerText) + 1;
-        document.getElementById('totalRefCnt').innerText = cnt;
-        alert('Success! Referral credited.');
-        document.getElementById('otpBox').classList.add('hidden');
-        document.getElementById('mainActionBtn').style.display = 'block';
+        log(`[🛑] Process stopped.`);
     }
 </script>
 
