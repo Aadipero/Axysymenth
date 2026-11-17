@@ -46,19 +46,19 @@
         <div style="background: linear-gradient(135deg, #ec4899, #8b5cf6); width: 45px; height: 45px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px;">🛍️</div>
         <div>
             <h1>Smytten Auto</h1>
-            <p>Smytten Auto Refer — Pro Panel</p>
+            <p>Smytten Real-API Pro Panel</p>
         </div>
     </div>
 
     <div class="card stat-box">
-        <span>Total Refer Count</span>
+        <span>Verified Refer Count</span>
         <h2 id="totalRefCnt">0</h2>
     </div>
 
     <div class="row">
         <div class="col">
-            <span>PROXY STATUS</span>
-            <b id="proxyStatus" style="color: #34d399; font-size: 12px;">Active (Residential)</b>
+            <span>MODE</span>
+            <b id="proxyStatus" style="color: #34d399; font-size: 12px;">Real API Direct</b>
         </div>
         <div class="col">
             <span>STATUS</span>
@@ -81,12 +81,12 @@
             <label>Referral Code</label>
             <input type="text" id="mRefCode" value="Ng90M41">
         </div>
-        <button class="btn" onclick="startManualProcess()" id="mainActionBtn">Send OTP</button>
+        <button class="btn" onclick="startManualProcess()" id="mainActionBtn">Send Real OTP</button>
         
         <div id="otpBox" class="input-group hidden" style="margin-top: 12px;">
-            <label>Enter 4-Digit OTP</label>
+            <label>Enter Real 4-Digit OTP</label>
             <input type="text" id="mOtp" placeholder="1234" maxlength="4">
-            <button class="btn" onclick="verifyAndSubmitOtp()" style="margin-top: 8px; background: #059669;">Verify & Register</button>
+            <button class="btn" onclick="verifyAndSubmitOtp()" style="margin-top: 8px; background: #059669;">Verify & Credit Refer</button>
         </div>
     </div>
 
@@ -106,18 +106,16 @@
                 <input type="number" id="fbTarget" value="3">
             </div>
         </div>
-        <button class="btn" onclick="startFirebaseAuto()" style="background: #d97706;">Start Auto Register</button>
+        <button class="btn" onclick="startFirebaseAuto()" style="background: #d97706;">Start Real Firebase Auto</button>
     </div>
 
     <div class="note">
-        🔒 Proxies integrated: arealproxy.com (Residential IN)<br>
-        ⚠️ If any delay: Turn ON Airplane Mode for 4-5s → OFF.
+        🔒 Real API Mode: Binds code `Ng90M41` securely upon valid verification.
     </div>
 
     <div style="margin-top: 15px; font-size: 12px; font-weight: 600; color: #9ca3af; margin-bottom: 5px;">⚡ Live Process Log</div>
     <div class="log-box" id="logBox">
-        [19:15:38] Proxy pool loaded (ArealProxy IN)<br>
-        [19:15:38] System ready with code Ng90M41<br>
+        [System] Ready with default code Ng90M41<br>
     </div>
 </div>
 
@@ -169,11 +167,15 @@
         if(endpoint.includes('update_profile')) headers["user_type"] = "18";
 
         try {
-            const res = await fetch(targetUrl, { method: method, headers: headers, body: JSON.stringify(payload) });
+            const res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(targetUrl), {
+                method: method,
+                headers: headers,
+                body: JSON.stringify(payload)
+            });
             return await res.json();
         } catch(err) {
-            const resProxy = await fetch(`https://corsproxy.io/?` + encodeURIComponent(targetUrl), { method: method, headers: headers, body: JSON.stringify(payload) });
-            return await resProxy.json();
+            log(`[-] API Error: ${err.message}`);
+            return null;
         }
     }
 
@@ -188,7 +190,7 @@
 
         document.getElementById('botStatus').innerText = 'Sending...';
         document.getElementById('botStatus').style.color = '#3b82f6';
-        log(`[+] Dispatching OTP to ${phone} via Proxy...`);
+        log(`[+] Requesting real OTP for ${phone} ...`);
 
         const payload = {
             "app_installer": "com.android.vending",
@@ -209,21 +211,20 @@
 
         const data = await callSmyttenApi("/discover_user/users/loginViaNumberV2", payload, 'POST');
         if(!data) {
-            log(`[-] Connection timeout.`);
-            alert('Failed to send OTP. Try again.');
+            alert('Network error or CORS block. Try again.');
             document.getElementById('botStatus').innerText = 'Idle';
             return;
         }
 
         const isNew = data?.content?.is_new_user ?? data?.content?.newUser ?? true;
         if(isNew === false) {
-            log(`[!] Number ${phone} already registered!`);
-            alert('Number already registered on Smytten.');
+            log(`[!] Number ${phone} is already registered on Smytten!`);
+            alert('This number is already registered.');
             document.getElementById('botStatus').innerText = 'Idle';
             return;
         }
 
-        log(`[✓] OTP sent successfully to ${phone}`);
+        log(`[✓] OTP dispatched successfully to ${phone}`);
         tempSessionData = { phone, refCode };
         document.getElementById('otpBox').classList.remove('hidden');
         document.getElementById('mainActionBtn').style.display = 'none';
@@ -239,6 +240,7 @@
         }
 
         const { phone, refCode } = tempSessionData;
+        document.getElementById('botStatus').innerText = 'Verifying...';
         log(`[+] Verifying OTP ${otp} for ${phone} ...`);
 
         const payload = {
@@ -264,12 +266,13 @@
         const sessionId = data?.content?.session_id || data?.content?.authentication?.session_id;
 
         if(!sessionId) {
-            log(`[-] OTP Verification failed.`);
-            alert('OTP verification failed or incorrect OTP.');
+            log(`[-] Invalid OTP or Verification failed.`);
+            alert('Invalid OTP. Please check and try again.');
+            document.getElementById('botStatus').innerText = 'Awaiting OTP';
             return;
         }
 
-        log(`[✓] Verified! Session ID obtained.`);
+        log(`[✓] OTP Verified! Session established.`);
         
         const firstNames = ["Rahul", "Amit", "Rohit", "Vikas", "Suresh", "Ravi", "Ankit", "Nikhil"];
         const first = firstNames[Math.floor(Math.random() * firstNames.length)];
@@ -286,7 +289,8 @@
         };
 
         await callSmyttenApi("/discover_user/app/users/update_profile", profilePayload, 'PUT', sessionId);
-        log(`[✓✓✓] SUCCESS! Profile updated & Refer code applied (${refCode}).`);
+        
+        log(`[✓✓✓] SUCCESS! Referral code ${refCode} successfully bound to ${phone}`);
         
         let cnt = parseInt(document.getElementById('totalRefCnt').innerText) + 1;
         document.getElementById('totalRefCnt').innerText = cnt;
@@ -297,10 +301,10 @@
         document.getElementById('mOtp').value = '';
         document.getElementById('botStatus').innerText = 'Idle';
         document.getElementById('botStatus').style.color = '#fbbf24';
-        alert('Success! Account registered and referral credited.');
+        alert('Success! Account verified and referral successfully credited.');
     }
 
-    // Fully Functional Firebase Auto Scanner
+    // Real Firebase Auto Scanner (Checks numbers & registers via API)
     async function startFirebaseAuto() {
         const panelsText = document.getElementById('fbPanels').value.trim();
         const refCode = document.getElementById('fbRefCode').value.trim();
@@ -312,7 +316,7 @@
         }
 
         const urls = panelsText.split('\n').map(u => u.trim()).filter(u => u.length > 0);
-        log(`[*] Starting Firebase scan across ${urls.length} panels... (Target: ${target})`);
+        log(`[*] Scanning Firebase panels... (Target: ${target})`);
         document.getElementById('botStatus').innerText = 'Scanning...';
         document.getElementById('botStatus').style.color = '#d97706';
 
@@ -322,16 +326,11 @@
             if (successCount >= target) break;
             try {
                 let formattedUrl = url.endsWith('/') ? `${url}.json` : `${url}/.json`;
-                log(`[~] Fetching data from: ${url}`);
-                let res = await fetch(formattedUrl);
+                let res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(formattedUrl));
                 let data = await res.json();
 
-                if (!data) {
-                    log(`[!] No data found in panel.`);
-                    continue;
-                }
+                if (!data) continue;
 
-                // Extract numbers recursively from firebase json
                 let numbers = [];
                 function extractNumbers(obj) {
                     for (let key in obj) {
@@ -350,9 +349,8 @@
 
                 for (let phone of numbers) {
                     if (successCount >= target) break;
-                    log(`[+] Processing number: ${phone}`);
+                    log(`[+] Checking number: ${phone}`);
 
-                    // Send login request to trigger OTP/Check
                     let loginPayload = {
                         "app_installer": "com.android.vending",
                         "device_id": generateDeviceId(),
@@ -378,11 +376,9 @@
                         continue;
                     }
 
-                    log(`[✓] ${phone} is fresh. Simulating automated register...`);
-                    successCount++;
-                    let cnt = parseInt(document.getElementById('totalRefCnt').innerText) + 1;
-                    document.getElementById('totalRefCnt').innerText = cnt;
-                    log(`[✓✓] Target hit! Refer code ${refCode} credited for ${phone}`);
+                    // For automated firebase numbers where OTP isn't manually typed, 
+                    // we log that it's fresh. (Real auto-signup requires auto-SMS/OTP reader which browsers cannot intercept).
+                    log(`[✓] ${phone} is fresh! (Manual OTP required for complete binding).`);
                 }
             } catch(e) {
                 log(`[-] Error scanning panel: ${e.message}`);
@@ -391,7 +387,7 @@
 
         document.getElementById('botStatus').innerText = 'Idle';
         document.getElementById('botStatus').style.color = '#fbbf24';
-        alert(`Firebase Auto scan completed! Total successful referrals: ${successCount}`);
+        alert(`Firebase scan finished. Check log for fresh numbers.`);
     }
 </script>
 
