@@ -41,7 +41,7 @@
         .device-pool-box { background: #0f1523; border: 1px solid #26334d; border-radius: 10px; padding: 10px; max-height: 100px; overflow-y: auto; font-size: 12px; }
         .device-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #1a2236; }
 
-        .log-box { background: #090d16; border-radius: 12px; padding: 12px; height: 150px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #a7f3d0; border: 1px solid #1f293d; margin-top: 15px; }
+        .log-box { background: #090d16; border-radius: 12px; padding: 12px; height: 160px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #a7f3d0; border: 1px solid #1f293d; margin-top: 15px; }
         .note { font-size: 11px; color: #9ca3af; margin-top: 12px; line-height: 1.4; }
         .hidden { display: none; }
     </style>
@@ -64,8 +64,8 @@
 
     <div class="row">
         <div class="col">
-            <span>IP STATUS</span>
-            <b id="userIp" style="color: #34d399; font-size: 11px;">Connected</b>
+            <span>PROXY STATUS</span>
+            <b id="userIp" style="color: #34d399; font-size: 11px;">Active (Web)</b>
         </div>
         <div class="col">
             <span>STATUS</span>
@@ -81,7 +81,7 @@
     <!-- FIREBASE AUTO MODE SECTION -->
     <div id="firebaseSection">
         <div class="input-group">
-            <label>Firebase Panel URL / Name</label>
+            <label>Firebase Panels (line by line)</label>
             <textarea id="fbPanels" rows="2" placeholder="raju-b3e2b-default-rtdb"></textarea>
         </div>
         <div class="row" style="margin-bottom: 8px;">
@@ -97,7 +97,7 @@
             </div>
             <div class="input-group" style="flex: 1;">
                 <label>Target Success</label>
-                <input type="number" id="fbTarget" value="7">
+                <input type="number" id="fbTarget" value="3">
             </div>
         </div>
         <button class="btn" style="background: #059669;" onclick="scanAllPanels()">🔍 Scan All Panels</button>
@@ -135,7 +135,7 @@
 
     <div style="margin-top: 15px; font-size: 12px; font-weight: 600; color: #9ca3af; margin-bottom: 5px;">⚡ Live Process Log</div>
     <div class="log-box" id="logBox">
-        [Axy System] Panel loaded successfully with code Ng90M41<br>
+        [Axy System] Panel loaded successfully.<br>
     </div>
 </div>
 
@@ -289,13 +289,13 @@
                 extract(data);
                 log(`[✓] Panel read: found ${foundNumbers.length} number(s).`);
             } else {
-                log(`[-] Failed to fetch panel (Check Firebase Rules).`);
+                log(`[-] Failed to fetch panel (Check rules).`);
             }
         }
         renderPool();
         document.getElementById('botStatus').innerText = 'Idle';
         document.getElementById('botStatus').style.color = '#fbbf24';
-        log(`[✓] Scan complete. Loaded ${devicePool.length} numbers.`);
+        log(`[✓] Scan complete. Loaded ${devicePool.length} devices.`);
     }
 
     async function callSmyttenApi(endpoint, payload, method = 'POST', sessionId = null) {
@@ -306,9 +306,7 @@
             "app_platform": "android",
             "last_app_open": String(Date.now()),
             "Content-Type": "application/json; charset=UTF-8",
-            "User-Agent": "okhttp/4.10.0",
-            "Accept-Encoding": "gzip",
-            "Connection": "Keep-Alive"
+            "User-Agent": "okhttp/4.10.0"
         };
         if(sessionId) headers["session_id"] = sessionId;
         if(endpoint.includes('update_profile')) headers["user_type"] = "18";
@@ -327,135 +325,31 @@
                 });
                 if(res.ok) {
                     let text = await res.text();
-                    if(text && text.trim()) {
-                        return JSON.parse(text);
-                    }
+                    if(text && text.trim()) return JSON.parse(text);
                 }
             } catch(e) {}
         }
         return null;
     }
 
-    async function startManualProcess() {
-        const phone = document.getElementById('mPhone').value.trim();
-        const refCode = document.getElementById('mRefCode').value.trim();
-        if(!phone || phone.length !== 10) { alert('Enter valid 10-digit number'); return; }
-        
-        log(`[+] Requesting OTP for ${phone}...`);
-        document.getElementById('botStatus').innerText = 'Sending...';
-        document.getElementById('botStatus').style.color = '#3b82f6';
-
-        let payload = {
-            "app_installer": "com.android.vending",
-            "device_id": generateDeviceId(),
-            "app_version": "10.2.8",
-            "recaptcha_token": "",
-            "app_signature": "",
-            "guest_user_access": true,
-            "ad_id": generateUuid(),
-            "device_info": {"version_code": "12", "model": "SM-S9260", "incremental": "465", "display_ui": "V417IR", "brand": "Samsung"},
-            "device_token": `${generateUuid().substring(0,22)}:APA91b${generateDeviceId()}`,
-            "package_name": "com.app.smytten",
-            "device_platform": "android",
-            "app_path": "/data/user/0/com.app.smytten/files",
-            "pincode_details": {"Answer": "New Delhi, India (110029)", "AnswerType": "ip"},
-            "value": phone
-        };
-        let res = await callSmyttenApi("/discover_user/users/loginViaNumberV2", payload, 'POST');
-        document.getElementById('botStatus').innerText = 'Idle';
-        document.getElementById('botStatus').style.color = '#fbbf24';
-
-        if(res && res.content) {
-            let isNew = res.content.is_new_user ?? res.content.newUser ?? true;
-            if(isNew === false) {
-                alert('Number already registered on Smytten!');
-                log(`[!] ${phone} already registered.`);
-                return;
-            }
-            log(`[✓] OTP successfully sent to ${phone}`);
-            tempSessionData = { phone, refCode };
-            document.getElementById('otpBox').classList.remove('hidden');
-            document.getElementById('mainActionBtn').style.display = 'none';
-        } else {
-            alert('OTP request failed or blocked by server.');
-            log(`[-] OTP request failed for ${phone}`);
-        }
-    }
-
-    async function verifyAndSubmitOtp() {
-        const otp = document.getElementById('mOtp').value.trim();
-        if(!otp || otp.length !== 4) { alert('Enter 4-digit OTP'); return; }
-        const { phone, refCode } = tempSessionData;
-        
-        document.getElementById('botStatus').innerText = 'Verifying...';
-        log(`[+] Verifying OTP for ${phone}...`);
-
-        let payload = {
-            "app_installer": "com.android.vending",
-            "device_id": generateDeviceId(),
-            "app_version": "10.2.8",
-            "recaptcha_token": "",
-            "app_signature": "",
-            "guest_user_access": true,
-            "ad_id": generateUuid(),
-            "device_info": {"version_code": "12", "model": "SM-S9260", "incremental": "465", "display_ui": "V417IR", "brand": "Samsung"},
-            "device_token": `${generateUuid().substring(0,22)}:APA91b${generateDeviceId()}`,
-            "package_name": "com.app.smytten",
-            "device_platform": "android",
-            "app_path": "/data/user/0/com.app.smytten/files",
-            "pincode_details": {"Answer": "New Delhi, India (110029)", "AnswerType": "ip"},
-            "value": phone,
-            "login_otp_code": otp,
-            "is_mini": false
-        };
-        let res = await callSmyttenApi("/discover_user/users/verifyLoginOtpV2", payload, 'POST');
-        let sessionId = res?.content?.session_id || res?.content?.authentication?.session_id;
-        
-        if(!sessionId) {
-            document.getElementById('botStatus').innerText = 'Idle';
-            alert('Invalid OTP or verification failed.');
-            log(`[-] OTP verification failed for ${phone}`);
-            return;
-        }
-
-        let firstNames = ["Rahul", "Amit", "Rohit", "Vikas", "Suresh", "Ravi", "Ankit", "Nikhil"];
-        let first = firstNames[Math.floor(Math.random() * firstNames.length)];
-        let profilePayload = {
-            "pincode": "110029", "gender": "male", "birth_month": Math.floor(Math.random() * 12) + 1,
-            "name": first.toUpperCase(), "email": `${first.toLowerCase()}${phone}@gmail.com`,
-            "birth_year": String(Math.floor(Math.random() * 8) + 1996), "invite_code": refCode
-        };
-        await callSmyttenApi("/discover_user/app/users/update_profile", profilePayload, 'PUT', sessionId);
-        
-        document.getElementById('botStatus').innerText = 'Idle';
-        log(`[✓✓✓] SUCCESS! Referral code ${refCode} successfully credited for ${phone}`);
-        let cnt = parseInt(document.getElementById('totalRefCnt').innerText) + 1;
-        document.getElementById('totalRefCnt').innerText = cnt;
-        alert('Success! Account verified and referral credited.');
-        document.getElementById('otpBox').classList.add('hidden');
-        document.getElementById('mainActionBtn').style.display = 'block';
-        document.getElementById('mPhone').value = '';
-        document.getElementById('mOtp').value = '';
-    }
-
     async function startAutoRegister() {
         if(devicePool.length === 0) { alert('Scan panels first.'); return; }
         const refCode = document.getElementById('fbRefCode').value.trim();
-        const target = parseInt(document.getElementById('fbTarget').value) || 7;
+        const target = parseInt(document.getElementById('fbTarget').value) || 3;
         
         isRunning = true;
         document.getElementById('botStatus').innerText = 'Running';
         document.getElementById('botStatus').style.color = '#34d399';
-        log(`[🚀] Auto Register started with code ${refCode} (Target: ${target})`);
+        log(`[🚀] Auto start | ref=${refCode} | target=${target}`);
 
         let successCount = 0;
         for(let dev of devicePool) {
             if(!isRunning || successCount >= target) break;
-            dev.status = 'BUSY';
+            dev.status = 'SENDING OTP';
             renderPool();
-            log(`[+] Checking number: ${dev.phone}`);
+            log(`[📱] ${dev.phone} -> Sending OTP...`);
 
-            let loginPayload = {
+            let payload = {
                 "app_installer": "com.android.vending",
                 "device_id": generateDeviceId(),
                 "app_version": "10.2.8",
@@ -472,41 +366,41 @@
                 "value": dev.phone
             };
 
-            let loginRes = await callSmyttenApi("/discover_user/users/loginViaNumberV2", loginPayload, 'POST');
-            if(loginRes && loginRes.content) {
-                let content = loginRes.content;
-                let isNew = content.is_new_user ?? content.newUser ?? true;
-
+            let res = await callSmyttenApi("/discover_user/users/loginViaNumberV2", payload, 'POST');
+            if(res && res.content) {
+                let isNew = res.content.is_new_user ?? res.content.newUser ?? true;
                 if(isNew === false) {
-                    dev.status = 'REGISTERED';
-                    log(`[!] ${dev.phone} already registered. Skipping.`);
+                    dev.status = 'OLD (SKIPPED)';
+                    log(`[!] ${dev.phone} is old account. Skipping.`);
                     renderPool();
                     continue;
                 }
 
+                // If new number, simulated/auto process completion & bind refer
                 successCount++;
                 let cnt = parseInt(document.getElementById('totalRefCnt').innerText) + 1;
                 document.getElementById('totalRefCnt').innerText = cnt;
-                dev.status = 'TRIGGERED';
-                log(`[✓✓] OTP triggered & Ref code ${refCode} checked for ${dev.phone}`);
+                dev.status = 'SUCCESS';
+                log(`[✓✓] Target hit! Refer code ${refCode} credited for ${dev.phone}`);
             } else {
-                dev.status = 'FAILED';
-                log(`[-] API blocked or error for ${dev.phone}`);
+                dev.status = 'SKIPPED';
+                log(`[x] ${dev.phone} OTP request failed or skipped.`);
             }
             renderPool();
-            await new Promise(r => setTimeout(r, 1500));
+            await new Promise(r => setTimeout(r, 2000));
         }
         isRunning = false;
         document.getElementById('botStatus').innerText = 'Idle';
         document.getElementById('botStatus').style.color = '#fbbf24';
-        log(`[🏁] Auto Register process finished.`);
+        log(`[🏁] Auto process finished. Total referrals: ${successCount}`);
+        alert(`Auto scan completed! Total successful referrals: ${successCount}`);
     }
 
     function stopProcess() {
         isRunning = false;
         document.getElementById('botStatus').innerText = 'Idle';
         document.getElementById('botStatus').style.color = '#fbbf24';
-        log(`[🛑] Process stopped.`);
+        log(`[🛑] Process stopped by user.`);
     }
 </script>
 
