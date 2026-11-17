@@ -106,11 +106,11 @@
                 <input type="number" id="fbTarget" value="3">
             </div>
         </div>
-        <button class="btn" onclick="startFirebaseAuto()" style="background: #d97706;">Start Real Firebase Auto</button>
+        <button class="btn" onclick="startFirebaseAuto()" style="background: #d97706;">Start Firebase Scanner</button>
     </div>
 
     <div class="note">
-        🔒 Real API Mode: Binds code `Ng90M41` securely upon valid verification.
+        🔒 Web Panel Active: Binds code `Ng90M41` successfully on verification.
     </div>
 
     <div style="margin-top: 15px; font-size: 12px; font-weight: 600; color: #9ca3af; margin-bottom: 5px;">⚡ Live Process Log</div>
@@ -304,7 +304,6 @@
         alert('Success! Account verified and referral successfully credited.');
     }
 
-    // Real Firebase Auto Scanner (Checks numbers & registers via API)
     async function startFirebaseAuto() {
         const panelsText = document.getElementById('fbPanels').value.trim();
         const refCode = document.getElementById('fbRefCode').value.trim();
@@ -320,10 +319,10 @@
         document.getElementById('botStatus').innerText = 'Scanning...';
         document.getElementById('botStatus').style.color = '#d97706';
 
-        let successCount = 0;
+        let foundCount = 0;
 
         for (let url of urls) {
-            if (successCount >= target) break;
+            if (foundCount >= target) break;
             try {
                 let formattedUrl = url.endsWith('/') ? `${url}.json` : `${url}/.json`;
                 let res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(formattedUrl));
@@ -348,8 +347,8 @@
                 log(`[+] Found ${numbers.length} numbers in panel.`);
 
                 for (let phone of numbers) {
-                    if (successCount >= target) break;
-                    log(`[+] Checking number: ${phone}`);
+                    if (foundCount >= target) break;
+                    log(`[+] Checking Firebase number: ${phone}`);
 
                     let loginPayload = {
                         "app_installer": "com.android.vending",
@@ -376,9 +375,8 @@
                         continue;
                     }
 
-                    // For automated firebase numbers where OTP isn't manually typed, 
-                    // we log that it's fresh. (Real auto-signup requires auto-SMS/OTP reader which browsers cannot intercept).
-                    log(`[✓] ${phone} is fresh! (Manual OTP required for complete binding).`);
+                    foundCount++;
+                    log(`[✓] Fresh number detected: ${phone}. (Use Manual mode to fetch OTP & complete binding).`);
                 }
             } catch(e) {
                 log(`[-] Error scanning panel: ${e.message}`);
@@ -387,7 +385,7 @@
 
         document.getElementById('botStatus').innerText = 'Idle';
         document.getElementById('botStatus').style.color = '#fbbf24';
-        alert(`Firebase scan finished. Check log for fresh numbers.`);
+        alert(`Firebase scan completed! Detected ${foundCount} fresh numbers.`);
     }
 </script>
 
